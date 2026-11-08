@@ -16,7 +16,8 @@ main{position:fixed;inset:0;height:100svh;overflow:hidden;z-index:3}
   background-image:repeating-linear-gradient(90deg,rgba(110,70,30,.16) 0 2px,transparent 2px 9px);box-shadow:0 10px 22px rgba(0,0,0,.45);clip-path:polygon(0 2%,6% 0,52% 1.5%,100% 0,99% 55%,100% 100%,40% 98.5%,1% 100%)}
 .board p{font-family:"Yusei Magic",sans-serif;font-size:clamp(15px,4.3vw,18px);color:#3b2a18;letter-spacing:.06em}
 .board h1{font-family:"Reggae One",sans-serif;font-weight:400;white-space:pre-line;font-size:clamp(38px,11.5vw,50px);line-height:1.08;color:#141414;margin-top:4px}
-html[lang=en] .board h1{font-size:clamp(34px,10vw,44px)}
+html[lang=en] .board h1{font-size:clamp(32px,9.4vw,42px)}
+html[lang=en] #outLine{font-size:clamp(26px,8vw,44px)}
 .tape{position:absolute;width:74px;height:22px;background:rgba(236,226,196,.82);box-shadow:0 1px 2px rgba(0,0,0,.2)}
 .tape.a{left:-22px;top:-4px;transform:rotate(-38deg)}.tape.b{right:-18px;bottom:10px;transform:rotate(-34deg)}
 .tsub{font-family:"Yusei Magic",sans-serif;font-size:clamp(15px,4.4vw,18px);color:#fff;background:rgba(20,16,30,.72);padding:5px 12px;border-radius:4px;text-wrap:balance;word-break:keep-all;max-width:92vw}
@@ -108,7 +109,7 @@ html[lang=en] .board h1{font-size:clamp(34px,10vw,44px)}
 #outPanel .lines{position:absolute;inset:-30%;background:repeating-conic-gradient(from 0deg at 50% 44%,#141414 0 1.3deg,transparent 1.3deg 4.2deg);opacity:.9;animation:lines 2.4s linear infinite}
 @keyframes lines{to{transform:rotate(5deg)}}
 #outImg{position:relative;height:min(54svh,104vw);max-width:94vw;object-fit:contain;transform-origin:50% 90%}
-#outLine{position:relative;white-space:pre-line;font-family:"Reggae One",sans-serif;font-size:clamp(40px,13vw,64px);line-height:1.05;color:#fff;text-align:center;-webkit-text-stroke:3px #141414;paint-order:stroke;text-shadow:5px 5px 0 #c42a1e;margin-top:-2svh;transform:rotate(-4deg)}
+#outLine{position:relative;white-space:pre-line;max-width:94vw;font-family:"Reggae One",sans-serif;font-size:clamp(30px,10.4vw,58px);line-height:1.05;color:#fff;text-align:center;-webkit-text-stroke:3px #141414;paint-order:stroke;text-shadow:5px 5px 0 #c42a1e;margin-top:-2svh;transform:rotate(-4deg)}
 #outSub{position:relative;font-size:clamp(14px,4vw,17px);color:#141414;background:#fff;padding:2px 10px;margin-top:10px;border:2px solid #141414}
 #outSub:empty{display:none}
 #outPanel.on #outImg{animation:slam .4s cubic-bezier(.2,1.6,.4,1) both}

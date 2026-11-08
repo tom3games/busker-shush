@@ -1,6 +1,6 @@
 import './mute-auto.mjs'
 import { MUTE_LAUNCH, muteContext } from './mute.mjs'
-// 喋るなら出ていけ！ の検証。node verify.mjs（音は出さない。押す操作は page.mouse・CDP の本物のタッチ・touchscreen）
+// 路上ライブは私語厳禁 の検証。node verify.mjs（音は出さない。押す操作は page.mouse・CDP の本物のタッチ・touchscreen）
 import { chromium, webkit } from 'playwright'
 import { spawn } from 'node:child_process'
 import { mkdirSync } from 'node:fs'
@@ -143,14 +143,14 @@ await t('サビの爆音中は、視線に関係なく叫べる（ボタンが�
   const lbl = await p.evaluate(() => document.getElementById('talkL').textContent)
   expect(b.shout && b.strikes === 0 && (b.wi > a.wi || b.wp > 0.5) && lbl === '叫べる', JSON.stringify({ shout: b.shout, s: b.strikes, wi: [a.wi, b.wi], lbl })); return { lbl }
 })
-await t('振りかぶった後、曲が止まった瞬間に叫んでいたら一発で追い出し（大ゴマ「喋るなら出ていけ！」）', async () => {
+await t('振りかぶった後、曲が止まった瞬間に叫んでいたら一発で追い出し（大ゴマは叫んだ原因の一言）', async () => {
   await p.evaluate(() => { const d = bs.dbg; d.pause(true); d.goto('loud', { dur: 3 }); d.tick(2); d.G.queue.unshift(d.sec('wind', 0.5), d.sec('stop', 3)); d.G.cur.dur = d.G.cur.t + 0.05; d.G.strikes = 0 })
   const xy = await talkXY(p)
   await p.mouse.move(xy.x, xy.y); await p.mouse.down(); await run(p, 1.0); const b = await st(p)
   await run(p, 1.3); await p.mouse.up()
   const r = await p.evaluate(() => ({ panel: !document.getElementById('outPanel').hidden, line: document.getElementById('outLine').textContent, sub: document.getElementById('outSub').textContent }))
   await p.screenshot({ path: ROOT + '/shots/v-out.png' })
-  expect(b.over === 'out' && b.outKind === 'shout' && r.panel && /出ていけ/.test(r.line) && r.sub, JSON.stringify({ over: b.over, k: b.outKind, r })); return r
+  expect(b.over === 'out' && b.outKind === 'shout' && r.panel && /目立つな|俺のもん/.test(r.line) && r.sub, JSON.stringify({ over: b.over, k: b.outKind, r })); return r
 })
 await t('追い出し → 投げ出されて結果へ（判子は「出禁」・最後の一言が出る）', async () => {
   await run(p, 5); await p.evaluate(() => bs.dbg.pause(false)); await p.waitForTimeout(1600)
@@ -178,6 +178,28 @@ await t('3回見つかると追い出し（2回目は演奏を止めて説教）
     await run(p, 0.2)
   }
   expect(seen[1][1] === 'lecture' && seen[2][2] === 'out', JSON.stringify(seen)); return seen
+})
+await t('見つかった原因ごとに説教と追い出しの大ゴマが変わり、結果のセットリストに原因が書かれる', async () => {
+  const xy = await talkXY(p), got = {}
+  for (const [sc, id] of [[0, 'boss'], [1, 'tako'], [2, 'friend'], [3, 'date']]) {
+    await p.evaluate(sc => { bs.dbg.startPlay(); bs.dbg.pause(true); bs.dbg.startScene(sc); bs.dbg.tick(30) }, sc)
+    const seen = []
+    for (let i = 0; i < 3; i++) {
+      await gazeOn(p); await p.mouse.move(xy.x, xy.y); await p.mouse.down(); await run(p, 0.6); await p.mouse.up(); await run(p, 0.05)
+      seen.push(await p.evaluate(() => bs.texts().join('/')))
+      if ((await st(p)).over) break
+      await run(p, 0.2)
+    }
+    await run(p, 0.6)
+    const line = await p.evaluate(() => document.getElementById('outLine').textContent.replace(/\n/g, ''))
+    await p.evaluate(() => bs.dbg.pause(false)); await p.waitForFunction(() => bs.state.mode === 'result', null, { timeout: 12000 }); await p.waitForTimeout(400)
+    const r = await p.evaluate(() => window.__lastResult)
+    got[id] = { lecture: seen[1], line, cause: r.outCause }
+    if (id === 'date') await p.screenshot({ path: ROOT + '/shots/v-result-date.png' })
+  }
+  const BS = await p.evaluate(() => window.BS.LINES)
+  const ok = Object.entries(got).every(([id, g]) => g.cause === id && BS.outBy[id].some(x => x[0].replace(/\n/g, '') === g.line) && BS.lecture[id].some(x => g.lecture.includes(x[0])))
+  expect(ok, JSON.stringify(got)); return Object.fromEntries(Object.entries(got).map(([k, v]) => [k, v.line]))
 })
 await t('用事を全部言い切ると次の用事へ（相手・時刻・屋台が変わる）', async () => {
   await p.evaluate(() => { bs.dbg.startPlay(); bs.dbg.pause(true) })
@@ -228,7 +250,7 @@ await t('English: タイトル・遊び方・遊び中・結果が英語にな�
   const r2 = await q.evaluate(() => ({ who: document.getElementById('whoName').textContent, words: document.getElementById('words').textContent, talk: document.getElementById('talkL').textContent }))
   o = await overflow(q); f = await fit(q); if (o.bad.length || f.over.length) bad.push('play ' + o.bad + f.over); await q.screenshot({ path: ROOT + '/shots/v-en-play.png' })
   const ja = /[ぁ-んァ-ン一-龥]/
-  expect(/Shut Up/.test(r1.t2) && r1.lang === 'en' && !ja.test(r2.who + r2.words + r2.talk + r1.start) && !bad.length, JSON.stringify({ r1, r2, bad }))
+  expect(/Busking Zone/.test(r1.t2) && r1.lang === 'en' && !ja.test(r2.who + r2.words + r2.talk + r1.start) && !bad.length, JSON.stringify({ r1, r2, bad }))
   await q.context().close(); return r2
 })
 await t('Chromium 全体でエラーが出ていない', async () => { expect(p.errs.length === 0, p.errs.join('|')) })

@@ -1,9 +1,9 @@
-// 喋るなら出ていけ！ 文言とデータ（[日本語, English]）。仕様の正本は ~/Desktop/claudecode/ideas/busker-shush.md
+// 路上ライブは私語厳禁 文言とデータ（[日本語, English]）。仕様の正本は ~/Desktop/claudecode/ideas/busker-shush.md
 // 出てくる人・曲・歌詞は全部作りもの。実在の人や出来事とは関係ない
 window.BS = {
   T: {
-    title1: ['駅前・路上ライブ', 'Station square street gig'],
-    title2: ['喋るなら\n出ていけ！', 'Shut Up\nor Get Out!'],
+    title1: ['本日、駅前広場にて', 'Tonight at the station square'],
+    title2: ['路上ライブは\n私語厳禁', 'Busking Zone:\nNo Talking'],
     sub: ['爆音の路上ライブの横で、用事を4つ済ませろ', 'Get 4 errands done next to a deafening street gig'],
     start: ['広場に入る', 'Enter the square'],
     how: ['遊び方', 'How to play'],
@@ -23,7 +23,7 @@ window.BS = {
       [['目が合ったら、黙る', 'If he looks, shut up'], ['静かな曲の間、地面の光が視線。光の中で喋ると見つかる。3回で追い出し', 'During quiet songs, the light on the ground is his gaze. Talk inside it and you get caught. Three strikes and you are out']],
       [['サビの爆音は、叫べる', 'Shout under the chorus'], ['目をつぶって熱唱中は叫んでも平気。振りかぶったら離す。曲が止まった瞬間に叫んでいたら一発で追い出し', 'While he sings with his eyes shut, shouting is safe. When he raises the guitar, let go. If you are still shouting when the song stops, you are out on the spot']],
     ],
-    warn: ['喋るなら、出ていけ！', 'Shut up, or get out!'],
+    warn: ['私語は、つまみ出されます', 'Talkers get thrown out'],
     ui: ['右上のピック＝あと何回見つかってよいか。顔の輪＝相手が待てる時間', 'Picks (top right) = strikes left. Ring around the face = how long they will wait'],
   },
   HINT: {
@@ -100,6 +100,21 @@ window.BS = {
     mom: [['たっくーん！', 'Go, Takkun!']],
     strike1: [['……そこ、今いい所だから', '...Hey. Best part is coming']],
     strike2: [['歌ってる時は静かに聴く。マナーやろ', 'Quiet while I sing. Manners']],
+    // 見つかった原因ごとの説教（2回目）と追い出しの大ゴマ。原因 = 用事の id か shout（叫んだまま曲が止まった）
+    lecture: {
+      boss: [['電話は曲が終わってから。社会人やろ', 'Calls after the song. Be a grown-up'], ['着信音より、俺の音を聴け', 'Forget your ringtone. Hear my tone']],
+      tako: [['たこ焼きは逃げへん。俺の歌は今だけや', 'Takoyaki can wait. My song cannot'], ['注文は物販のあとで', 'Order after the merch table']],
+      friend: [['居場所なら、俺の歌が教えてくれる', 'My song will tell them where you are'], ['待ち合わせの目印は、俺や', 'I am the meeting spot']],
+      date: [['恋の話は、バラードのあとで', 'Love talk after the ballad'], ['告白は、俺の新曲に乗せてからや', 'Confess to my new song, not over it']],
+    },
+    outBy: {
+      boss: [['電話なら\n外でやれ！', 'Take that call\noutside!'], ['会社に\n帰れ！', 'Go back\nto work!']],
+      tako: [['注文は\nよそでやれ！', 'Order\nsomewhere else!'], ['たこ焼きより\n俺を味わえ！', 'Taste my music,\nnot takoyaki!']],
+      friend: [['待ち合わせは\nよそでやれ！', 'Meet up\nsomewhere else!'], ['目印に\n俺を使うな！', 'I am not\na landmark!']],
+      date: [['愛を語るなら\nワンマンでやれ！', 'Want to talk love?\nBook your own show!'], ['恋は\n俺の歌の中だけや！', 'Love only lives\nin my songs!']],
+      shout: [['俺より\n目立つな！', 'Do not outshine\nme!'], ['サビは\n俺のもんや！', 'The chorus\nis mine!']],
+    },
+    why: { boss: ['電話で', 'phone call'], tako: ['注文で', 'ordering'], friend: ['連絡で', 'texting'], date: ['告白で', 'confessing'], shout: ['叫んで', 'shouting'] },
     out: ['喋るなら\n出ていけ！', 'Shut up\nor get out!'],
     outAfter: [['では次の曲、『静寂』', 'Next song: "Silence"'], ['……たっくん、言い方', '...Takkun, be nice']],
     shoutSolo: ['広場に、叫びだけが響いた', 'Only your shout echoes'],

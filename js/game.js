@@ -1,4 +1,4 @@
-// 喋るなら出ていけ！ 本体
+// 路上ライブは私語厳禁 本体
 // 遊び: 駅前広場。真ん中で路上ミュージシャンが爆音ライブ中。押している間だけ話して、用事の言葉を一言ずつ相手に届ける。
 // 静かな曲の間は視線（地面の光）に入ると見つかる。サビは叫べるが、曲が止まった瞬間に叫んでいたら一発で追い出し。
 // 仕様の正本は ~/Desktop/claudecode/ideas/busker-shush.md。文言は data.js
@@ -237,6 +237,7 @@ function plan(i) {
 function newGame(seed, learn = false) {
   G.seed = seed; rng = mulberry(seed)
   G.t = 0; G.mode = 'play'; G.over = null; G.endT = 0; G.done = false
+  G.e1 = G.e2 = G.e3 = G.e4 = false; G.outCause = null; G.outLine = null; G.outKind = null
   G.rare = { string: rng() < 0.35, momLoud: rng() < 0.5, fan: rng() < 0.3, outLine: rng() < 0.5 ? 0 : 1 }
   G.strikes = 0; G.immune = 0; G.seenT = 0; G.lock = false; G.hold = false; G.res = []; G.events = []; G.news = []; G.firsts = {}
   G.learn = learn ? { shown: '', talked: 0 } : null
@@ -305,7 +306,7 @@ function enterSec(s, prev) {
     if (s.fan) setTimeout0(5.6, () => sayAt('police', L(pick(BS.LINES.fan))))
   } else if (ty === 'lecture') {
     music(null); sfx('chord_soft', { vol: 0.6, jitter: 0 }); gz.hwTo = 14; gz.len = 7.5
-    sayMus(L(pick(BS.LINES.strike2)), 'angry', 3.2)
+    sayMus(L(pick(BS.LINES.lecture[G.S.id] || BS.LINES.strike2)), 'angry', 3.4)
   } else if (ty === 'tune') {
     music(null); sfx('chord_soft', { vol: 0.5, jitter: 0, rate: 0.7 }); gz.hwTo = 13; gz.len = 1.3; gz.to = -16; gz.spd = 120
     sayMus(L(pick(BS.LINES.string)), '')
@@ -380,6 +381,7 @@ function caught() {
 function out(kind) {
   if (G.over) return
   G.over = 'out'; G.outKind = kind; G.endT = 0; G.lock = true
+  G.outCause = kind === 'shout' ? 'shout' : (G.S ? G.S.id : 'boss'); G.outLine = pick(BS.LINES.outBy[G.outCause])
   G.outWord = G.S ? L(G.S.words[Math.min(G.wi, G.S.words.length - 1)]) : ''
   ev('out ' + kind)
   music(null); G.gz.hwTo = kind === 'shout' ? 62 : G.gz.hwTo
@@ -442,7 +444,7 @@ function result() {
   pts = Math.max(0, pts - 15 * G.strikes)
   const isOut = G.over === 'out'
   const ti = isOut ? 'out' : done === 4 ? (G.strikes === 0 && pts >= 500 ? 'perfect' : 'all') : ['zero', 'one', 'two', 'three'][done]
-  return { points: pts, done, out: isOut, outKind: G.outKind || null, outScene: isOut ? G.sc : null, strikes: G.strikes, scenes: G.res.map(r => ({ ...r })), title: L(BS.TITLES[ti]), titleKey: ti, sec: Math.round(G.t * 10) / 10 }
+  return { points: pts, done, out: isOut, outKind: G.outKind || null, outCause: isOut ? G.outCause : null, outLine: isOut && G.outLine ? L(G.outLine).replace(/\n/g, '') : null, outScene: isOut ? G.sc : null, strikes: G.strikes, scenes: G.res.map(r => ({ ...r })), title: L(BS.TITLES[ti]), titleKey: ti, sec: Math.round(G.t * 10) / 10 }
 }
 
 // ============================================================ 初めての1回: 遊びの中で、その時に合わせて教える
@@ -661,7 +663,7 @@ function stepEnd() {
 }
 function showOut() {
   const p = $('outPanel'); $('outImg').src = 'img/m_out.webp'
-  $('outLine').textContent = L(BS.LINES.out); $('outSub').textContent = G.outKind === 'shout' ? L(BS.LINES.shoutSolo) : ''
+  $('outLine').textContent = L(G.outLine || BS.LINES.out); $('outSub').textContent = G.outKind === 'shout' ? L(BS.LINES.shoutSolo) : ''
   p.className = ''; p.hidden = false; void p.offsetWidth; p.classList.add('on')
 }
 async function showResult() {
@@ -671,8 +673,8 @@ async function showResult() {
   await drawCard(r)
   fitCard()
   $('outPanel').hidden = true
-  const ja = r.out ? `路上ライブの横で「${G.outWord}」と言ったら追い出された。用事${r.done}/4、${r.points}点「${r.title}」 #喋るなら出ていけ` : `爆音の路上ライブの横で用事を${r.done}/4済ませた。${r.points}点「${r.title}」 #喋るなら出ていけ`
-  const en = r.out ? `Got kicked out of a street gig for saying "${G.outWord}". Errands ${r.done}/4, ${r.points} pts. #ShutUpOrGetOut` : `Got ${r.done}/4 errands done next to a deafening street gig. ${r.points} pts "${r.title}" #ShutUpOrGetOut`
+  const ja = r.out ? `路上ライブの横で「${G.outWord}」と言ったら「${r.outLine}」で追い出された。用事${r.done}/4、${r.points}点 #路上ライブは私語厳禁` : `爆音の路上ライブの横で用事を${r.done}/4済ませた。${r.points}点「${r.title}」 #路上ライブは私語厳禁`
+  const en = r.out ? `Got kicked out of a street gig for saying "${G.outWord}". Errands ${r.done}/4, ${r.points} pts. #BuskingZoneNoTalking` : `Got ${r.done}/4 errands done next to a deafening street gig. ${r.points} pts "${r.title}" #BuskingZoneNoTalking`
   $('bPost').href = 'https://x.com/intent/post?text=' + encodeURIComponent(lang === 'en' ? en : ja) + '&url=' + encodeURIComponent('https://tom3games.com/play/busker-shush/')
   sfx(r.out ? 'j_bad' : r.done >= 3 ? 'j_good' : 'j_mid', { vol: 0.5 })
   window.__lastResult = r
@@ -706,7 +708,7 @@ async function drawCard(r) {
     const y = 226 + i * 104, sc = BS.SCENES[i], rr = r.scenes[i]
     x.textAlign = 'left'; x.fillStyle = '#1d1d1d'; x.font = `700 30px ${pen}`; x.fillText((i + 1) + '. ' + songs[i], 92, y)
     x.font = `700 23px ${pen}`; x.fillStyle = '#b3241c'
-    const res = rr ? (rr.ok ? (lang === 'en' ? `done in ${rr.t}s` : `${rr.t}秒で済んだ`) : (lang === 'en' ? 'gave up' : '相手が帰った')) : (r.out && i === r.outScene ? (lang === 'en' ? 'KICKED OUT' : '追い出された') : '')
+    const res = rr ? (rr.ok ? (lang === 'en' ? `done in ${rr.t}s` : `${rr.t}秒で済んだ`) : (lang === 'en' ? 'gave up' : '相手が帰った')) : (r.out && i === r.outScene ? (lang === 'en' ? 'kicked out for ' + L(BS.LINES.why[r.outCause]) : L(BS.LINES.why[r.outCause]) + '追い出された') : '')
     x.fillText(sc.time + '  ' + L(sc.title) + (res ? '  ' + res : ''), 110, y + 38)
     // 赤ペンの丸・バツ
     x.strokeStyle = '#c42a1e'; x.lineWidth = 5; x.beginPath()
@@ -738,7 +740,7 @@ async function drawCard(r) {
   x.font = `700 30px ${pen}`; x.fillText(r.points + (lang === 'en' ? ' pts' : '点'), 520, 896)
   if (r.out) { x.font = `700 22px ${pen}`; x.fillStyle = '#b3241c'; const q = lang === 'en' ? `Last word: "${G.outWord}"` : `最後の一言「${G.outWord}」`; x.fillText(q, W / 2, 958) }
   else { x.font = `700 24px ${pen}`; x.fillStyle = '#222'; x.fillText((lang === 'en' ? 'Strikes ' : '見つかった回数 ') + r.strikes, W / 2, 958) }
-  x.font = `700 20px ${pen}`; x.fillStyle = '#2a1c10'; x.textAlign = 'right'; x.fillText(lang === 'en' ? 'Shut Up or Get Out!' : '喋るなら出ていけ！', W - 22, 990)
+  x.font = `700 20px ${pen}`; x.fillStyle = '#2a1c10'; x.textAlign = 'right'; x.fillText(lang === 'en' ? 'Busking Zone: No Talking' : '路上ライブは私語厳禁', W - 22, 990)
 }
 
 // ============================================================ ボタン
