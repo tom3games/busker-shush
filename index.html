@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<script id="ghMove">if(location.hostname==='tom3games.github.io'){location.replace('https://tom3games.com/play/busker-shush/'+location.search+location.hash)}</script>
+<link rel="canonical" href="https://tom3games.com/play/busker-shush/">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>喋るなら出ていけ！｜路上ライブがうるさい駅前のバカゲー</title>
+<meta name="description" content="路上ライブがうるさい駅前で、上司の電話・たこ焼きの注文・待ち合わせ・告白を済ませるブラウザゲーム。爆音のミュージシャンは目が合うと怒る。静かな曲の間は視線をよけてひそひそ、サビの爆音では叫べるが、曲が止まった瞬間に叫んでいたら「喋るなら出ていけ！」。スマホで遊べる。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="喋るなら出ていけ！">
+<meta property="og:description" content="自分は爆音なのに、客には静かにしろと言う路上ミュージシャン。その横で、用事を4つ済ませろ。">
+<meta property="og:image" content="https://tom3games.com/play/busker-shush/og.png?v=1">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://tom3games.com/play/busker-shush/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#231e2e">
+<link rel="icon" href="img/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Yusei+Magic&family=Reggae+One&family=Zen+Kaku+Gothic+New:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=1">
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
+<script>window.__bootN=0;window.__bootStep=function(){var n=++window.__bootN,b=document.getElementById('bootBar');if(b)b.style.transform='scaleX('+Math.min(1,n/7)+')'}</script>
+<link rel="modulepreload" href="vendor/three.core.min.js" onload="__bootStep()">
+<link rel="modulepreload" href="vendor/three.module.min.js" onload="__bootStep()">
+<link rel="modulepreload" href="js/game.js?v=1" onload="__bootStep()">
+<link rel="modulepreload" href="js/look.js?v=1" onload="__bootStep()">
+<link rel="preload" as="image" href="img/m_play.webp" onload="__bootStep()">
+</head>
+<body>
+<canvas id="view"></canvas>
+<div id="flash"></div>
+
+<main id="vTitle" hidden>
+  <div class="board" id="board">
+    <p id="t1"></p>
+    <h1 id="t2"></h1>
+    <i class="tape a"></i><i class="tape b"></i>
+  </div>
+  <div class="tbtns">
+    <p class="tsub" id="tSub"></p>
+    <button id="bStart" class="go"></button>
+    <div class="row"><button id="bHow" class="small"></button><button id="bLang" class="small"></button></div>
+  </div>
+</main>
+
+<main id="vHow" hidden>
+  <div class="flyer">
+    <h2 id="howH"></h2>
+    <ol id="howRules"></ol>
+    <p class="ui" id="howUi"></p>
+    <p class="warn" id="howWarn"></p>
+    <button id="bHowClose" class="go small2"></button>
+    <p class="foot"><a id="lPrivacy" href="privacy.html" target="_blank" rel="noopener"></a><span id="howCredit"></span></p>
+  </div>
+</main>
+
+<main id="vPlay" hidden>
+  <div id="who" aria-hidden="true">
+    <div class="face"><img id="whoImg" alt=""><svg viewBox="0 0 68 68"><circle cx="34" cy="34" r="30" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="6"/><circle id="whoRing" cx="34" cy="34" r="30" fill="none" stroke="#f2d16a" stroke-width="6" stroke-linecap="round" transform="rotate(-90 34 34)"/></svg></div>
+    <div class="meta"><b id="whoName"></b><span id="whoTime"></span><em id="whoTitle"></em></div>
+  </div>
+  <div id="picks" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div id="t_mus" class="bubble" hidden></div>
+  <div id="t_pat" class="bubble pat" hidden></div>
+  <div id="t_hint" class="hint" hidden></div>
+  <div id="eye" hidden aria-hidden="true"><svg viewBox="0 0 64 40"><path d="M3 20Q32-6 61 20Q32 46 3 20z" fill="#fff" stroke="#141414" stroke-width="4"/><circle cx="32" cy="20" r="9" fill="#141414"/></svg></div>
+  <div id="card2" hidden><b id="c2Time"></b><span id="c2Title"></span></div>
+  <div class="talkbar">
+    <div id="words"></div>
+    <button id="talk" aria-label="talk"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M11 9q9-6 18 0" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" opacity=".55"/><path d="M7 5q13-9 26 0" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" opacity=".3"/><ellipse cx="20" cy="25" rx="10" ry="6.5" fill="currentColor"/><path d="M12 24q8 4 16 0" stroke="#fff6e8" stroke-width="2" fill="none"/></svg><span id="talkL"></span></button>
+  </div>
+</main>
+
+<div id="outPanel" hidden aria-hidden="true">
+  <div class="lines"></div>
+  <img id="outImg" alt="">
+  <p id="outLine"></p>
+  <p id="outSub"></p>
+</div>
+
+<main id="vResult" hidden>
+  <div class="cardbox" id="cardBox"><canvas id="card" width="720" height="1000"></canvas></div>
+  <div class="rbtns"><button id="bSave" class="small"></button><a id="bPost" class="small" target="_blank" rel="noopener"></a></div>
+  <div class="rrow"><button id="bAgain" class="go"></button></div>
+</main>
+
+<button id="bMute" aria-label="音" hidden><svg viewBox="0 0 32 32"><path d="M5 12h6l7-6v20l-7-6H5z" fill="currentColor"/><path id="mWave" d="M22 11q4 5 0 10M25 8q7 8 0 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path id="mX" d="M22 12l8 8M30 12l-8 8" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
+
+<div id="boot">
+  <svg viewBox="0 0 200 150" aria-hidden="true">
+    <path d="M40 112c-18 0-26-14-20-28 4-9 14-12 22-10 6-14 26-20 40-10 10 7 12 18 8 26 10 2 16 10 14 18-3 10-14 14-24 12-6 8-22 10-32 4-4-6-6-10-8-12z" fill="#e8c48a" stroke="#1b1b1b" stroke-width="4" stroke-linejoin="round"/>
+    <circle cx="66" cy="94" r="12" fill="#3a2a1e"/>
+    <path d="M82 84L176 30" stroke="#5a3a22" stroke-width="10" stroke-linecap="round"/>
+    <g class="strings"><path d="M66 90L176 28" stroke="#f4efe4" stroke-width="1.6"/><path d="M66 96L178 33" stroke="#f4efe4" stroke-width="1.6"/><path d="M68 100L180 38" stroke="#f4efe4" stroke-width="1.6"/></g>
+    <rect x="168" y="18" width="20" height="24" rx="4" fill="#3a2a1e" transform="rotate(-30 178 30)"/>
+  </svg>
+  <p id="bootMsg">チューニング中</p>
+  <div class="boot-bar"><i id="bootBar"></i></div>
+</div>
+
+<script>
+(function(){var o={passive:false};
+['gesturestart','gesturechange','gestureend'].forEach(function(n){document.addEventListener(n,function(e){e.preventDefault()},o)});
+document.addEventListener('touchmove',function(e){if(e.touches&&e.touches.length>1)e.preventDefault()},o);
+var l=0;document.addEventListener('touchend',function(e){var n=Date.now();if(n-l<300&&!(e.target.closest&&e.target.closest('button,a,#view')))e.preventDefault();l=n},o);
+document.addEventListener('dblclick',function(e){e.preventDefault()},o);
+window.addEventListener('wheel',function(e){if(e.ctrlKey)e.preventDefault()},o);
+window.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&['+','-','=','0',';'].indexOf(e.key)>=0)e.preventDefault()});
+try{if((localStorage.getItem('bs_lang')||((navigator.language||'ja').indexOf('ja')==0?'ja':'en'))=='en')document.getElementById('bootMsg').textContent='Tuning up'}catch(e){}
+setTimeout(function(){window.__bootTimeout=!window.__bootDone;document.getElementById('boot').classList.add('gone')},12000);
+var errs=[];window.addEventListener('error',function(e){errs.push((e.message||(e.target&&(e.target.src||e.target.href))||'error')+(e.filename?' @'+e.filename+':'+e.lineno:''))},true);
+window.addEventListener('unhandledrejection',function(e){errs.push('reject: '+String(e.reason&&e.reason.message||e.reason))});
+setTimeout(function(){if(window.__jsUp)return;var d=document.createElement('div');d.id='bootErr';d.textContent='起動できませんでした / failed to start\n'+(errs.join('\n')||'(no error captured)')+'\n'+navigator.userAgent;document.body.appendChild(d)},15000)})();
+</script>
+<script src="tm.js?v=1" data-game="busker-shush"></script>
+<script src="sfx.js?v=1"></script>
+<script src="data.js?v=1"></script>
+<script type="module" src="js/game.js?v=1"></script>
+<script src="support.js?v=1" data-ja="のど飴" data-en="a throat lozenge"></script>
+</body>
+</html>
