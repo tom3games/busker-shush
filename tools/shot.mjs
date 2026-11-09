@@ -35,6 +35,12 @@ for (const sc of (scenes.length ? scenes : ['title'])) {
       if (sc === 'out') { toScene(1); d.step(30); G.strikes = 2; d.caught(); d.step(60 * 0.9) }
       if (sc === 'outshout') { toScene(3); G.wi = 2; d.step(10); d.out('shout'); d.step(60 * 0.6) }
       if (sc === 'fly') { toScene(0); d.out('caught'); d.step(60 * 3.4) }
+      if (sc === 'rings') { toScene(1); d.goto('quiet', { dur: 9 }); d.step(10); G.gz.a = G.gz.to = -50; G.gz.dwell = 9; G.gz.pre = 0; d.step(20) }
+      if (sc === 'panic') { toScene(1); d.goto('quiet', { dur: 9 }); d.step(10); G.gz.a = G.gz.to = -50; G.gz.dwell = 9; bs.trick('lyric'); d.step(60 * 3.2) }
+      if (sc === 'unplug') { toScene(1); d.goto('quiet', { dur: 9 }); d.step(10); G.gz.a = G.gz.to = -50; G.gz.dwell = 9; G.gz.pre = 0; bs.trick('cable'); d.step(60 * 1.0) }
+      if (sc === 'npc') { toScene(2); d.goto('quiet', { dur: 12 }); d.step(60 * 1.2); G.npc.t = 1; G.npc.talk = true; G.npc.ph = 0; d.step(20) }
+      if (sc === 'blame') { toScene(2); d.goto('quiet', { dur: 12 }); d.step(60 * 1.2); G.npc.t = 1; G.npc.talk = true; G.npc.ph = 0; d.step(5); bs.blame(); d.step(36) }
+      if (sc === 'outprank') { toScene(1); d.step(20); G.gz.a = G.gz.to = bs.state.youA; G.gz.hw = 13; G.gz.dwell = 9; bs.trick('amp'); d.step(60 * 0.8) }
       if (sc === 'result') { for (let i = 0; i < 4; i++) G.res.push({ id: d.BS.SCENES[i].id, ok: i !== 2, t: 18 + i * 3.3, left: 12, pat: 36, shouted: i === 3 ? 1 : 0, words: 4 }); G.over = 'end'; G.strikes = 1; d.showResult() }
       if (sc === 'resultout') { G.res.push({ id: 'boss', ok: true, t: 21.4, left: 18, pat: 40, shouted: 0, words: 5 }); G.sc = 1; G.over = 'out'; G.outKind = 'shout'; G.outWord = 'マヨ抜きで'; G.strikes = 1; d.showResult() }
       if (sc === 'resultzero') { for (let i = 0; i < 4; i++) G.res.push({ id: d.BS.SCENES[i].id, ok: false, t: 36, left: 0, pat: 36, shouted: 0, words: 0 }); G.over = 'end'; d.showResult() }

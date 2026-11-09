@@ -164,6 +164,16 @@ for (let i = 0; i < 9; i++) { const c = cyl(0.025, 0.025, 0.006, std('#d8c27a', 
 const signTex = canvasTex(256, 200, (x, w, h) => signDraw(x, w, h))
 const sign = plane(0.62, 0.48, std('#ffffff', { map: signTex, r: 1 }), [0.98, 0.86, -2.55], [-0.12, -0.35, 0])
 
+// ---- いたずらの的: 譜面台の歌詞カード・アンプのつまみ・足元のケーブル
+const standM = std('#2a2a2e', { m: 0.5, r: 0.4 })
+cyl(0.012, 0.012, 1.0, standM, [0.3, 0.5, -1.62]); cyl(0.16, 0.16, 0.015, standM, [0.3, 0.008, -1.62])
+const lyricTex = canvasTex(128, 96, (x, w, h) => { x.fillStyle = '#f7f3e6'; x.fillRect(0, 0, w, h); x.strokeStyle = '#555'; x.lineWidth = 2; for (let i = 0; i < 7; i++) { x.beginPath(); x.moveTo(10, 14 + i * 11); x.lineTo(10 + 60 + (i * 37 % 45), 14 + i * 11); x.stroke() } x.fillStyle = '#c42a1e'; x.beginPath(); x.arc(108, 16, 7, 0, 7); x.fill() })
+const lyric = plane(0.36, 0.27, std('#ffffff', { map: lyricTex, r: 1 }), [0.3, 1.08, -1.59], [-0.5, -0.15, 0]); lyric.material.side = THREE.DoubleSide
+const cableCurve = new THREE.CatmullRomCurve3([new THREE.Vector3(0.82, 0.03, -2.62), new THREE.Vector3(1.1, 0.02, -1.9), new THREE.Vector3(0.95, 0.02, -1.4), new THREE.Vector3(0.5, 0.02, -1.5), new THREE.Vector3(0.12, 0.02, -1.95), new THREE.Vector3(0.05, 0.02, -2.45)])
+const cable = new THREE.Mesh(new THREE.TubeGeometry(cableCurve, 40, 0.018, 6), std('#111', { r: 0.6 })); scene.add(cable)
+const plug = box(0.06, 0.04, 0.1, std('#c9b48a', { m: 0.6, r: 0.3 }), [0.95, 0.03, -1.4])
+const TRICK = { amp: new THREE.Vector3(0.95, 0.66, -2.75), lyric: new THREE.Vector3(0.3, 1.1, -1.59), cable: new THREE.Vector3(0.95, 0.03, -1.4) }
+
 // ---- 人（切り絵）
 const mus = paper('m_play', 2.0); mus.position.copy(M)
 addBlobShadow(mus, 0.9, { opacity: 0.45 })
@@ -173,6 +183,10 @@ const you = paper('y_phone', 1.72); you.position.set(1.1, 0, 0.35)
 addBlobShadow(you, 0.8, { opacity: 0.45 })
 const date = paper('date', 1.6); date.position.set(0.7, 0, -0.95); date.visible = false
 addBlobShadow(date, 0.6, { opacity: 0.35 })
+// しゃべる通行人（なすりつけの身代わり。3つめの用事から）
+const NPC_IMG = ['n_aunt', 'n_stream', 'n_suit'], NPC_FLY = ['n_aunt_f', 'n_stream_f', 'n_suit_f']
+const npc = paper('n_aunt', 1.5); npc.position.set(-1.05, 0, -1.15); npc.visible = false
+addBlobShadow(npc, 0.6, { opacity: 0.35 })
 const police = paper('police', 1.78); police.position.set(-4.5, 0, -1.4); police.visible = false
 addBlobShadow(police, 0.7, { opacity: 0.4 })
 // たこ焼きの屋台（2つめの用事から。左手前）
@@ -243,6 +257,7 @@ function newGame(seed, learn = false) {
   G.learn = learn ? { shown: '', talked: 0 } : null
   G.sc = -1; G.gz = { a: -40, to: -40, spd: 70, dwell: 1, hw: 0, hwTo: 0, len: 7, tgt: 'mom', pre: 0 }
   G.musX = 0; G.musOver = null; G.musOverT = 0; G.policeT = -1
+  G.sus = 0; G.tricks = 0; G.blames = 0; G.used = {}; G.ampT = -1; G.lyricSwap = false; G.npc = null; G.npcN = 0
   startScene(0)
 }
 function startScene(i) {
@@ -255,6 +270,9 @@ function startScene(i) {
   if (S.phone) sfx('ring', { vol: 0.5, jitter: 0 })
   if (!SIM) setTimeout(() => sayPat(L(S.open)), 600)
   stall.visible = tako.visible = i === 1
+  G.used = {}; G.ampT = -1; G.lyricSwap = false
+  if (i >= 1 && !G.firsts.tricks) { G.firsts.tricks = 1; newThing('tricks'); if (!SIM && !store.get('bs_tut2')) { store.set('bs_tut2', '1'); setTimeout0(2.5, () => say('hint', L(BS.HINT.trick), '', 3.2)) } }
+  if (i >= 2) spawnNpc(i === 2 ? 3 : 1.5); else G.npc = null
   date.visible = i === 3; if (i === 3) setPaper(date, 'date', 1.6)
   ev('scene ' + S.id)
 }
@@ -274,13 +292,14 @@ function enterSec(s, prev) {
   ev('sec ' + ty)
   const gz = G.gz
   if (ty === 'quiet') {
-    music('quiet', 0.42); gz.hwTo = 13; gz.len = 7.5; gz.dwell = 0.4
-    if (rng() < 0.75) sayMus(L(pick(BS.LYRIC.quiet)), 'lyric')
+    music('quiet', G.ampT >= 0 ? 0.2 : 0.42); gz.hwTo = 13; gz.len = 7.5; gz.dwell = 0.4
+    if (G.lyricSwap) { G.lyricSwap = false; sayMus(L(pick(BS.LYRIC.swapped)), 'lyric', 2.4); setTimeout0(1.6, () => sayAt('mom', L(pick(BS.LINES.momLaugh)))); setTimeout0(2.4, () => { G.queue.unshift(sec('panic', 5), sec('quiet', rnd(3, 4))); if (G.cur === s) s.dur = s.t }) }
+    else if (rng() < 0.75) sayMus(L(pick(BS.LYRIC.quiet)), 'lyric')
     s.coinAt = s.coin ? rnd(1.5, Math.max(2, s.dur - 3)) : -1
     s.momAt = s.momLoud ? rnd(1.2, 2.5) : -1
     s.strAt = s.string ? rnd(2.5, 4) : -1
   } else if (ty === 'loud' || ty === 'intro') {
-    music(ty === 'intro' ? 'intro' : 'loud', 0.95, 0.06); gz.hwTo = 0
+    music(ty === 'intro' ? 'intro' : 'loud', G.ampT >= 0 ? 0.4 : 0.95, 0.06); gz.hwTo = 0
     sayMus(L(s.last ? pick(BS.LINES.last) : pick(BS.LYRIC.loud)), 'loud')
     if (prev && prev.type === 'brk') sayMus(L(pick(BS.LINES.brk)), 'loud')
     fx.shake(0.05, 0.3)
@@ -307,6 +326,15 @@ function enterSec(s, prev) {
   } else if (ty === 'lecture') {
     music(null); sfx('chord_soft', { vol: 0.6, jitter: 0 }); gz.hwTo = 14; gz.len = 7.5
     sayMus(L(pick(BS.LINES.lecture[G.S.id] || BS.LINES.strike2)), 'angry', 3.4)
+  } else if (ty === 'panic') {
+    music(null); gz.hwTo = 13; gz.len = 1.2; gz.to = -26; gz.spd = 150; gz.pre = 0
+    sayMus(L(pick(BS.LINES.panic)), 'angry', 3)
+  } else if (ty === 'unplug') {
+    music(null); sfx('chord_soft', { vol: 0.7, jitter: 0, rate: 0.45 }); gz.hwTo = 13; gz.len = 1.3; gz.to = 95; gz.spd = 260; gz.pre = 0
+    sayMus(L(pick(BS.LINES.unplug)), '', 2.4)
+  } else if (ty === 'search') {
+    music(null); gz.hwTo = 16; gz.len = 7.5; gz.pre = 0
+    sayMus(L(pick(BS.LINES.search)), 'angry', 3)
   } else if (ty === 'tune') {
     music(null); sfx('chord_soft', { vol: 0.5, jitter: 0, rate: 0.7 }); gz.hwTo = 13; gz.len = 1.3; gz.to = -16; gz.spd = 120
     sayMus(L(pick(BS.LINES.string)), '')
@@ -340,12 +368,16 @@ function stepGaze(dt) {
     if (gz.pre > 0) { gz.pre -= dt; const d = gz.to - gz.a; gz.a += Math.sign(d) * Math.min(Math.abs(d), 7 * dt); gz.hw = lerp(gz.hw, gz.hwTo, Math.min(1, dt * 10)); return }
     if (Math.abs(gz.to - gz.a) < 0.5) {
       gz.dwell -= dt
-      if (gz.dwell <= 0 && ty === 'quiet') { if (gz.tgt === 'chira') { gz.tgt = 'back'; gz.to = gz.back; gz.spd = 230; gz.dwell = 0.3 } else { gz.len = 7.5; pickGaze(s.chira) } }
+      if (gz.tgt === 'npc') {}
+      else if (gz.dwell <= 0 && ty === 'quiet') { if (gz.tgt === 'chira') { gz.tgt = 'back'; gz.to = gz.back; gz.spd = 230; gz.dwell = 0.3 } else { gz.len = 7.5; pickGaze(s.chira) } }
     }
   } else if (ty === 'mc') {
     gz.to = -44 + 76 * (0.5 - 0.5 * Math.cos(s.t * 2 * Math.PI / 3.6)); gz.spd = 400
   } else if (ty === 'cd' || ty === 'lecture') { gz.to = S.you; gz.spd = 240; if (gz.pre > 0) { gz.pre -= dt; gz.spd = 0 } }
   else if (ty === 'police') { gz.to = S.police; gz.spd = 200 }
+  else if (ty === 'panic' || ty === 'unplug') { if (ty === 'unplug' && s.t > 2.6) { gz.to = 0; gz.spd = 220; gz.hwTo = 62; gz.len = 8 } }
+  else if (ty === 'search') { gz.to = -50 + 100 * (0.5 - 0.5 * Math.cos(s.t * 2 * Math.PI / 3.4)); gz.spd = 300 }
+  if (gz.tgt === 'npc') { gz.npcT -= dt; if (gz.npcT <= 0) { gz.tgt = 'center'; gz.dwell = 0.3 } else if (!SHOUT_TYPES[ty] && ty !== 'wind' && !WIDE_TYPES[ty]) { gz.to = gz.npcA; gz.spd = 240; gz.hwTo = 13; gz.len = 7.5; gz.pre = 0 } }
   else if (WIDE_TYPES[ty]) { gz.to = 0; gz.spd = 200 }
   // 回す
   const d = gz.to - gz.a, mv = gz.spd * dt
@@ -358,6 +390,44 @@ function inGaze() { const gz = G.gz; return gz.hw > 1 && gz.len >= distTo(you.po
 function shoutMode() { const s = G.cur; return !!s && (SHOUT_TYPES[s.type] || (s.type === 'wind' && s.loud)) }
 function canTalk() { return G.mode === 'play' && !G.over && G.inter <= 0 && G.cur && G.cur.type !== 'lecture' }
 function coinIn() { const c = coins.find(c => !c.visible); if (c) c.visible = true; sfx('coin', { vol: 0.7 }); sayMus(L(pick(BS.LINES.coin)), ''); if (!G.firsts.coin) { G.firsts.coin = 1; newThing('coin') } }
+
+// ============================================================ もうひと工夫: 見ていない隙に、機材にいたずら・通行人になすりつけ
+// いたずら（2つめの用事から。各1回）: 歌詞カードのすり替え＝次の静かな曲で変な歌詞→動揺して長い隙／ケーブルを抜く＝曲が止まる（声が届きやすいが、すぐ顔を上げる）／
+// アンプのつまみを下げる＝しばらくサビでも声が届く（あとで犯人探し）。見られている時・切れ目・説教中に触ると一発退場。続けると疑われ、疑い3つで手を出したら捕まる
+function trickOk(k) { return G.mode === 'play' && !G.over && G.inter <= 0 && G.sc >= 1 && !G.used[k] && G.cur && !['lecture', 'search', 'panic', 'unplug', 'tune'].includes(G.cur.type) }
+function trick(k) {
+  if (!trickOk(k)) return 'off'
+  const ty = G.cur.type
+  if (inGaze() || WIDE_TYPES[ty] || ty === 'cd' || G.sus >= 3) { ev('trick caught ' + k); return out('prank'), 'caught' }
+  G.used[k] = 1; G.sus++; G.tricks++; ev('trick ' + k); if (!G.firsts['t_' + k]) { G.firsts['t_' + k] = 1; newThing('t_' + k) }
+  sfx('click', { vol: 0.4 })
+  if (k === 'lyric') { G.lyricSwap = true; if (G.cur.type === 'quiet' && G.cur.dur - G.cur.t > 2) { G.queue.unshift(sec('quiet', rnd(4, 5))); G.cur.dur = G.cur.t } }
+  else if (k === 'cable') {
+    if (shoutMode() && G.hold && !G.lock) { G.queue.unshift(sec('unplug', 4)); G.cur.dur = G.cur.t; return out('shout'), 'shout' }
+    G.queue.unshift(sec('unplug', 4), sec('quiet', rnd(4, 5))); G.cur.dur = G.cur.t
+  } else if (k === 'amp') { G.ampT = 9; if (shoutMode()) music('loud', 0.4, 0.3); else music('quiet', 0.2, 0.3) }
+  return 'ok'
+}
+function spawnNpc(after) { G.npc = { k: G.npcN++ % 3, t: -after, talk: false, ph: 0, fly: -1 }; npc.visible = false }
+function stepNpc(dt) {
+  const n = G.npc; if (!n) return
+  n.t += dt
+  if (n.fly >= 0) { n.fly += dt; if (n.fly > 1.2) spawnNpc(6); return }
+  if (n.t < 0) return
+  n.ph += dt; const cyc = n.talk ? 2.6 : 1.8
+  if (n.ph >= cyc) { n.ph = 0; n.talk = !n.talk; if (n.talk && !G.firsts.npc) { G.firsts.npc = 1; newThing('npc') } }
+}
+function npcOk() { const n = G.npc; return !!n && n.t >= 0 && n.fly < 0 && G.mode === 'play' && !G.over && G.inter <= 0 }
+function blame() {
+  if (!npcOk()) return 'off'
+  const n = G.npc
+  if (!n.talk || ['lecture', 'search'].includes(G.cur.type)) { ev('blame fail'); return out('blame'), 'fail' }
+  G.blames++; G.seenT = 0; G.immune = 1.0; ev('blame ok'); if (!G.firsts.blame) { G.firsts.blame = 1; newThing('blame') }
+  const gz = G.gz; gz.tgt = 'npc'; gz.pre = 0; gz.dwell = 2.6; gz.spd = 240; gz.npcT = 2.6; gz.npcA = angTo(npc.position)
+  sayMus(L(pick(BS.LINES.blameHit)), 'angry', 2.2); sfx('thud', { vol: 0.6 })
+  n.fly = 0; setTimeout0(0.9, () => sfx('swish', { vol: 0.6 }))
+  return 'ok'
+}
 
 // 話す（押している間）
 function setHold(v) {
@@ -381,7 +451,7 @@ function caught() {
 function out(kind) {
   if (G.over) return
   G.over = 'out'; G.outKind = kind; G.endT = 0; G.lock = true
-  G.outCause = kind === 'shout' ? 'shout' : (G.S ? G.S.id : 'boss'); G.outLine = pick(BS.LINES.outBy[G.outCause])
+  G.outCause = kind === 'shout' || kind === 'prank' || kind === 'blame' ? kind : (G.S ? G.S.id : 'boss'); G.outLine = pick(BS.LINES.outBy[G.outCause])
   G.outWord = G.S ? L(G.S.words[Math.min(G.wi, G.S.words.length - 1)]) : ''
   ev('out ' + kind)
   music(null); G.gz.hwTo = kind === 'shout' ? 62 : G.gz.hwTo
@@ -415,6 +485,8 @@ function stepGame(dt) {
   if (s.t >= s.dur) { nextSec(); if (G.over) return }
   stepGaze(dt)
   if (G.policeT >= 0) G.policeT += dt
+  if (G.ampT >= 0) { G.ampT -= dt; if (G.ampT < 0 && !['search', 'lecture', 'cd'].includes(G.cur.type)) { G.queue.unshift(sec('search', 3.6), sec('quiet', rnd(4, 5))); G.cur.dur = G.cur.t; newThing('search') } }
+  stepNpc(dt)
   if (G.musOverT > 0) { G.musOverT -= dt; if (G.musOverT <= 0) G.musOver = null }
   if (G.immune > 0) G.immune -= dt
   // 相手の我慢
@@ -427,7 +499,8 @@ function stepGame(dt) {
     const sh = shoutMode()
     if (!sh && inGaze() && G.immune <= 0) { G.seenT += dt; if (G.seenT >= SEEN) return caught() } else G.seenT = Math.max(0, G.seenT - dt * 2)
     const w = G.S.words[G.wi]
-    G.wp += dt / w[2] * (sh ? 0.6 : 1); if (sh) G.wshout = true
+    const rate = sh ? (G.ampT >= 0 ? 1.0 : 0.6) : G.cur.type === 'unplug' ? 1.4 : 1
+    G.wp += dt / w[2] * rate; if (sh) G.wshout = true
     if (G.wp >= 1) {
       G.wi++; G.wp = 0; if (G.wshout) G.shouted++; G.wshout = false
       sfx('pop', { vol: 0.5 }); ev('word ' + G.wi)
@@ -441,10 +514,10 @@ function result() {
   const done = G.res.filter(r => r.ok).length
   let pts = 0
   for (const r of G.res) if (r.ok) pts += 100 + Math.round(50 * r.left / r.pat) - 6 * r.shouted
-  pts = Math.max(0, pts - 15 * G.strikes)
+  pts = Math.max(0, pts - 15 * G.strikes + 20 * (G.tricks || 0) + 25 * (G.blames || 0))
   const isOut = G.over === 'out'
   const ti = isOut ? 'out' : done === 4 ? (G.strikes === 0 && pts >= 500 ? 'perfect' : 'all') : ['zero', 'one', 'two', 'three'][done]
-  return { points: pts, done, out: isOut, outKind: G.outKind || null, outCause: isOut ? G.outCause : null, outLine: isOut && G.outLine ? L(G.outLine).replace(/\n/g, '') : null, outScene: isOut ? G.sc : null, strikes: G.strikes, scenes: G.res.map(r => ({ ...r })), title: L(BS.TITLES[ti]), titleKey: ti, sec: Math.round(G.t * 10) / 10 }
+  return { points: pts, done, out: isOut, outKind: G.outKind || null, outCause: isOut ? G.outCause : null, outLine: isOut && G.outLine ? L(G.outLine).replace(/\n/g, '') : null, outScene: isOut ? G.sc : null, strikes: G.strikes, tricks: G.tricks || 0, blames: G.blames || 0, scenes: G.res.map(r => ({ ...r })), title: L(BS.TITLES[ti]), titleKey: ti, sec: Math.round(G.t * 10) / 10 }
 }
 
 // ============================================================ 初めての1回: 遊びの中で、その時に合わせて教える
@@ -555,6 +628,24 @@ function eyeDom() {
   const p = toScreen(new THREE.Vector3(you.position.x - 0.2, 1.78, you.position.z))
   e.style.left = Math.round(clamp(p.x, 40, innerWidth - 40)) + 'px'; e.style.top = Math.round(p.y) + 'px'
 }
+function trickDom() {
+  const box = $('tmarks'), list = []
+  for (const k of ['amp', 'lyric', 'cable']) if (trickOk(k)) list.push([k, toScreen(TRICK[k])])
+  if (npcOk() && G.sc >= 2) list.push(['npc', toScreen(new THREE.Vector3(npc.position.x, 1.0, npc.position.z)), G.npc.talk])
+  while (box.children.length < list.length) box.appendChild(document.createElement('i'))
+  ;[...box.children].forEach((e, i) => { const it = list[i]; if (!it) { e.hidden = true; return } e.hidden = false; e.dataset.k = it[0]; e.className = it[0] === 'npc' ? (it[2] ? 'npc talk' : 'npc') : ''; e.style.left = Math.round(it[1].x) + 'px'; e.style.top = Math.round(it[1].y) + 'px' })
+  const q = $('sus'), n = G.sus || 0
+  if (q.dataset.n != n) { q.dataset.n = n; q.textContent = '？'.repeat(n); q.hidden = !n }
+  if (n) { const p = toScreen(new THREE.Vector3(mus.position.x + 0.5, 1.55, mus.position.z)); q.style.left = Math.round(p.x) + 'px'; q.style.top = Math.round(p.y) + 'px' }
+  const t = $('chat'), on = npcOk() && G.npc.talk
+  if (t.hidden === on) t.hidden = !on
+  if (on) { const p = toScreen(new THREE.Vector3(npc.position.x + 0.15, 1.75, npc.position.z)); t.style.left = Math.round(p.x) + 'px'; t.style.top = Math.round(p.y) + 'px' }
+}
+function hitTrick(x, y) {
+  let best = null, bd = 1e9; const r = Math.max(44, innerWidth * 0.12)
+  for (const e of $('tmarks').children) { if (e.hidden) continue; const ex = parseFloat(e.style.left), ey = parseFloat(e.style.top), d = Math.hypot(ex - x, ey - y); if (d < r && d < bd) { bd = d; best = e.dataset.k } }
+  return best
+}
 function interDom() {
   const c = $('card2'), on = G.mode === 'play' && !G.over && G.inter > 0 && G.inter < 2.2 && G.sc < 3
   if (on) { const N = BS.SCENES[G.sc + 1]; if (c.dataset.id !== N.id + lang) { c.dataset.id = N.id + lang; $('c2Time').textContent = N.time; $('c2Title').textContent = L(N.title) } }
@@ -576,7 +667,8 @@ function castLook(dt) {
   else if (ty === 'clap') img = 'm_clap'
   else if (ty === 'mc' || ty === 'lecture') img = 'm_mic'
   else if (ty === 'cd') img = 'm_cd'
-  else if (ty === 'police') img = 'm_bow'
+  else if (ty === 'police' || ty === 'panic') img = 'm_bow'
+  else if (ty === 'search' || ty === 'unplug') img = ty === 'unplug' && G.cur.t < 2.0 ? 'm_play' : 'm_look'
   else if (gz.hw > 1 && Math.abs(gz.a - youAng()) < gz.hw + 2.5 && gz.len > 3) img = 'm_look'
   else flip = gz.a > 4
   setPaper(mus, img, img === 'm_out' ? 2.5 : 2.0, flip)
@@ -598,7 +690,7 @@ function castLook(dt) {
   fanG.rotation.y = gz.a * DEG
   const onYou = playing && shown && inGaze()
   fanMat.color.set(onYou ? (G.hold && !G.lock && !shoutMode() ? '#ff3b2a' : '#ff8a4a') : '#ffe7a0')
-  fanMat.opacity = WIDE_TYPES[ty] ? 0.42 : gz.pre > 0 && ty === 'quiet' ? 0.38 + 0.4 * (Math.sin(G.clock * 40) > 0 ? 1 : 0) : 0.5; if (WIDE_TYPES[ty] && !onYou) fanMat.color.set('#ffc070')
+  fanMat.opacity = WIDE_TYPES[ty] ? 0.42 : (gz.pre > 0 && ty === 'quiet') || (ty === 'unplug' && s.t > 2.0 && s.t < 2.6) ? 0.38 + 0.4 * (Math.sin(G.clock * 40) > 0 ? 1 : 0) : 0.5; if (WIDE_TYPES[ty] && !onYou) fanMat.color.set('#ffc070')
   // 自分の絵
   const S = G.S, phone = !S || S.phone || G.mode !== 'play'
   let yimg = phone ? 'y_phone' : 'y_wait'
@@ -616,6 +708,15 @@ function castLook(dt) {
     police.position.set(px, 0, -1.4)
     if (t > 9 && !stay) police.visible = false
   }
+  // しゃべる通行人
+  const n = G.npc
+  if (n && n.t >= 0 && G.mode === 'play') {
+    npc.visible = true
+    if (n.fly >= 0) { const k = Math.min(1, n.fly / 1.0); setPaper(npc, NPC_FLY[n.k], 1.3); npc.position.set(-1.05 - k * 3.2, 0.3 + Math.sin(k * Math.PI) * 1.4, -1.15 + k * 0.6); npc.rotation.z = k * 5 }
+    else { setPaper(npc, NPC_IMG[n.k], 1.5); npc.position.set(-1.05, n.talk ? Math.abs(Math.sin(G.clock * 14)) * 0.02 : 0, -1.15); npc.rotation.z = 0 }
+  } else npc.visible = false
+  lyric.rotation.z = G.lyricSwap ? 0.12 : 0
+  plug.visible = !(G.cur && G.cur.type === 'unplug')
   // 屋台の人
   tako.position.y = 0.62 + Math.sin(G.clock * 2.3) * 0.01
   // 夕方から夜へ
@@ -739,7 +840,7 @@ async function drawCard(r) {
   x.fillText(r.title, 520, 852)
   x.font = `700 30px ${pen}`; x.fillText(r.points + (lang === 'en' ? ' pts' : '点'), 520, 896)
   if (r.out) { x.font = `700 22px ${pen}`; x.fillStyle = '#b3241c'; const q = lang === 'en' ? `Last word: "${G.outWord}"` : `最後の一言「${G.outWord}」`; x.fillText(q, W / 2, 958) }
-  else { x.font = `700 24px ${pen}`; x.fillStyle = '#222'; x.fillText((lang === 'en' ? 'Strikes ' : '見つかった回数 ') + r.strikes, W / 2, 958) }
+  else { x.font = `700 24px ${pen}`; x.fillStyle = '#222'; x.fillText(lang === 'en' ? `Strikes ${r.strikes} / Pranks ${r.tricks} / Blamed others ${r.blames}` : `見つかった ${r.strikes}　いたずら ${r.tricks}　なすりつけ ${r.blames}`, W / 2, 958) }
   x.font = `700 20px ${pen}`; x.fillStyle = '#2a1c10'; x.textAlign = 'right'; x.fillText(lang === 'en' ? 'Busking Zone: No Talking' : '路上ライブは私語厳禁', W - 22, 990)
 }
 
@@ -750,7 +851,7 @@ function applyLang() {
   $('bStart').textContent = T('start'); $('bHow').textContent = T('how'); $('bLang').textContent = T('lang')
   $('howH').textContent = T('how'); $('howWarn').textContent = L(BS.HOWTO.warn); $('howUi').textContent = L(BS.HOWTO.ui); $('bHowClose').textContent = T('close'); $('lPrivacy').textContent = T('privacy')
   $('howCredit').textContent = lang === 'en' ? 'Music: Jason Shaw (Audionautix, CC BY 3.0 US), Antti Luode (CC BY 3.0). Sounds: Mcrfobrockr (CC BY 3.0), Kenney and other CC0 / public domain recordings' : '曲: Jason Shaw（Audionautix, CC BY 3.0 US）、Antti Luode（CC BY 3.0）　音: Mcrfobrockr（CC BY 3.0）ほか CC0・パブリックドメインの録音'
-  const ruleImg = ['img/y_phone.webp', 'img/m_look.webp', 'img/m_wind.webp']
+  const ruleImg = ['img/y_phone.webp', 'img/m_look.webp', 'img/m_bow.webp', 'img/m_wind.webp']
   $('howRules').innerHTML = ''
   BS.HOWTO.rules.forEach(([a, b], i) => {
     const li = document.createElement('li')
@@ -770,6 +871,13 @@ $('bMute').onclick = () => { muted = !muted; store.set('bs_mute', muted ? '1' : 
 $('bMute').classList.toggle('off', muted)
 $('bSave').onclick = () => { if (window.TM) TM.share('save'); $('card').toBlob(b => { if (!b) return; const u = URL.createObjectURL(b), a = document.createElement('a'); a.href = u; a.download = 'busker-shush.png'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000) }) }
 $('bPost').onclick = () => { if (window.TM) TM.share('x') }
+// 画面をタップ: 輪の付いた機材・しゃべっている通行人
+canvas.addEventListener('pointerdown', e => {
+  if (G.mode !== 'play' || G.over) return
+  const k = hitTrick(e.clientX, e.clientY); if (!k) return
+  e.preventDefault(); firstTouch()
+  if (k === 'npc') blame(); else trick(k)
+})
 // 話すボタン（押している間）。指が外にずれても離したことにする
 const talk = $('talk')
 const downs = new Set()
@@ -802,8 +910,8 @@ function render(dtR) {
   camera.position.copy(CAM.p); camera.lookAt(CAM.t)
   look.update(); fx.applyCamera()
   renderer.render(scene, camera)
-  if (G.mode === 'play') { textsDom(); whoDom(); picksDom(); wordsDom(); talkDom(); interDom(); eyeDom() }
-  else { for (const k of ['hint', 'pat', 'mus']) $('t_' + k).hidden = true; $('card2').hidden = true; $('eye').hidden = true }
+  if (G.mode === 'play') { textsDom(); whoDom(); picksDom(); wordsDom(); talkDom(); interDom(); eyeDom(); trickDom() }
+  else { for (const k of ['hint', 'pat', 'mus']) $('t_' + k).hidden = true; $('card2').hidden = true; $('eye').hidden = true; $('tmarks').innerHTML = ''; $('sus').hidden = true; $('chat').hidden = true }
 }
 function loop(now) {
   requestAnimationFrame(loop)
@@ -817,9 +925,10 @@ function loop(now) {
 const api = {
   get state() {
     const s = G.cur || {}, gz = G.gz || {}
-    return { mode: G.mode, t: G.t, sc: G.sc, sec: s.type, secT: s.t, secDur: s.dur, loudWind: s.type === 'wind' && !!s.loud, gazeA: gz.a, gazeTo: gz.to, gazeSpd: gz.spd, gazeHW: gz.hw, gazeLen: gz.len, gazePre: gz.pre || 0, youA: youAng(), youD: distTo(you.position), inGaze: inGaze(), shout: shoutMode(), can: canTalk(), hold: G.hold, lock: G.lock, wi: G.wi, wp: G.wp, wordDur: G.S && G.S.words[G.wi] ? G.S.words[G.wi][2] : 0, pat: G.pat, strikes: G.strikes, inter: G.inter, over: G.over, outKind: G.outKind, news: G.news.slice(), learn: G.learn && { ...G.learn } }
+    return { mode: G.mode, t: G.t, sc: G.sc, sec: s.type, secT: s.t, secDur: s.dur, loudWind: s.type === 'wind' && !!s.loud, gazeA: gz.a, gazeTo: gz.to, gazeSpd: gz.spd, gazeHW: gz.hw, gazeLen: gz.len, gazePre: gz.pre || 0, youA: youAng(), youD: distTo(you.position), inGaze: inGaze(), shout: shoutMode(), can: canTalk(), hold: G.hold, lock: G.lock, wi: G.wi, wp: G.wp, wordDur: G.S && G.S.words[G.wi] ? G.S.words[G.wi][2] : 0, pat: G.pat, strikes: G.strikes, sus: G.sus || 0, tricks: G.tricks || 0, blames: G.blames || 0, avail: ['amp', 'lyric', 'cable'].filter(trickOk), npcTalk: npcOk() && G.npc.talk, npcOn: npcOk(), ampLow: G.ampT >= 0, inter: G.inter, over: G.over, outKind: G.outKind, news: G.news.slice(), learn: G.learn && { ...G.learn } }
   },
-  hold: setHold, result,
+  hold: setHold, result, trick, blame,
+  trickXY(k) { const p = k === 'npc' ? toScreen(new THREE.Vector3(npc.position.x, 1.0, npc.position.z)) : toScreen(TRICK[k]); return p },
   talkXY() { const r = $('talk').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height } },
   texts: () => ['hint', 'pat', 'mus'].filter(k => !$('t_' + k).hidden).map(k => $('t_' + k).textContent),
   events: () => G.events.slice(),
@@ -852,6 +961,8 @@ function danger(s, st) {
   // 視線が自分に届くまでの秒数（届かないなら大きい数）
   if (s.shout) return 99
   if (s.sec === 'wind') return 0
+  if (s.sec === 'unplug') return s.secT < 2.6 ? 2.6 - s.secT : 0
+  if (s.sec === 'panic') return 99
   const hw = s.sec === 'stop' || s.sec === 'clap' || s.sec === 'brk' ? 62 : s.gazeHW
   if (hw < 1 && !(s.sec === 'quiet' || s.sec === 'mc' || s.sec === 'cd' || s.sec === 'police' || s.sec === 'lecture' || s.sec === 'tune')) return 99
   const w = Math.max(hw, 12)
@@ -859,7 +970,7 @@ function danger(s, st) {
   const gap = Math.abs(s.gazeA - s.youA) - w - 2.5
   if (gap <= 0) return 0
   const toward = Math.sign(s.gazeTo - s.gazeA) === Math.sign(s.youA - s.gazeA) && Math.abs(s.gazeTo - s.youA) < Math.abs(s.gazeA - s.youA) + w
-  if (s.sec === 'mc') return gap / 120
+  if (s.sec === 'mc' || s.sec === 'search') return gap / 120
   if (!toward) return 99
   return (s.gazePre || 0) + gap / Math.max(30, s.gazeSpd)
 }
@@ -883,6 +994,15 @@ const BOTS = {
       if (!s.loudWind && s.sec !== 'wind' && s.secDur - s.secT < (st.careless ? 0.3 : 1.2) + react) return api.hold(false)
       return api.hold(true)
     }
+    // もうひと工夫: いたずら（見ていない隙に機材）となすりつけ（視線が来そうな時、しゃべっている通行人）
+    if (st.tricks && !s.hold) {
+      const d0 = (st.hist && st.hist[0]) ?? 99
+      st.tcool = (st.tcool || 0) - dt
+      if (st.tcool <= 0 && s.avail.length && d0 > (st.greedy ? 0.15 : 1.5) && (st.greedy || s.sus < 3) && s.sec !== 'wind') {
+        const k = ['lyric', 'cable', 'amp'].find(x => s.avail.includes(x) && (x !== 'cable' || s.sec === 'quiet' || st.greedy)); if (k) { api.trick(k); st.tcool = st.greedy ? 0.1 : 1.5; return }
+      }
+    }
+    if (st.blame && s.npcTalk && !s.shout) { const d0 = (st.hist && st.hist[0]) ?? 99; if (d0 < 0.7) { api.blame(); return } }
     st.w = s.sec === 'wind' ? (st.w || 0) + dt : 0
     if (s.sec === 'wind' && st.w >= react) return api.hold(false)
     // 見えてから判断するまで react 秒（視線の状態を遅れて読む）
@@ -893,6 +1013,9 @@ const BOTS = {
     if (st.sloppy && !s.hold && st.r() < st.sloppy * dt) api.hold(true)
   },
 }
+BOTS.trick = (api, st, dt) => { st.tricks = true; st.blame = true; BOTS.good(api, st, dt) }
+BOTS.trickN = (api, st, dt) => { st.tricks = true; st.blame = true; BOTS.normal(api, st, dt) }
+BOTS.greedy = (api, st, dt) => { st.tricks = true; st.greedy = true; BOTS.good(api, st, dt) }
 BOTS.normal = (api, st, dt) => { st.react = st.react ?? 0.7; st.margin = st.margin ?? 0.45; st.sloppy = st.sloppy ?? 0.04; st.miss = st.miss ?? 0.02; BOTS.good(api, st, dt) }
 BOTS.slow = (api, st, dt) => { st.react = st.react ?? 0.95; st.margin = st.margin ?? 0.55; st.sloppy = st.sloppy ?? 0.06; BOTS.good(api, st, dt) }
 
@@ -908,7 +1031,7 @@ function signDraw(x, w, h) {
 }
 function norenDraw(x, w, h) { x.fillStyle = '#b8261c'; x.fillRect(0, 0, w, h); x.fillStyle = '#fff6e6'; x.font = '56px "Yusei Magic", sans-serif'; x.textAlign = 'center'; x.fillText(lang === 'en' ? 'TAKO' : 'たこ焼', w / 2, 66); x.strokeStyle = 'rgba(0,0,0,.25)'; for (let i = 64; i < w; i += 64) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, h); x.stroke() } }
 const PRE = ['m_play', 'mom', 'y_phone']
-const LATER = ['m_look', 'm_shout', 'm_wind', 'm_mic', 'm_bow', 'm_out', 'm_cd', 'm_clap', 'y_pshout', 'y_fly', 'y_wait', 'y_whis', 'y_shout', 'police', 'tako', 'boss', 'friend', 'date', 'd_yes', 'd_bye', 'd_shock']
+const LATER = ['n_aunt', 'n_stream', 'n_suit', 'n_aunt_f', 'n_stream_f', 'n_suit_f', 'm_look', 'm_shout', 'm_wind', 'm_mic', 'm_bow', 'm_out', 'm_cd', 'm_clap', 'y_pshout', 'y_fly', 'y_wait', 'y_whis', 'y_shout', 'police', 'tako', 'boss', 'friend', 'date', 'd_yes', 'd_bye', 'd_shock']
 let readyDone = false
 function ready() {
   if (readyDone) return; readyDone = true

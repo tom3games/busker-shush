@@ -17,6 +17,8 @@ SHEETS = {
   'folks_a': ['mom', 'police', 'tako'],
   'folks_b': ['boss', 'friend', 'date'],
   'date_b': ['d_yes', 'd_bye', 'd_shock'],
+  'npc': ['n_aunt', 'n_stream', 'n_suit'],
+  'npc_b': ['n_aunt_f', 'n_stream_f', 'n_suit_f'],
 }
 MANUAL = {'mus_a': [[0, 508], [508, 1012], [1012, 1536]]}
 SMALL = {}

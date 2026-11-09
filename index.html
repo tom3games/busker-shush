@@ -20,12 +20,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Yusei+Magic&family=Reggae+One&family=Zen+Kaku+Gothic+New:wght@700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2">
+<link rel="stylesheet" href="style.css?v=3">
 <script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
 <script>window.__bootN=0;window.__bootStep=function(){var n=++window.__bootN,b=document.getElementById('bootBar');if(b)b.style.transform='scaleX('+Math.min(1,n/7)+')'}</script>
 <link rel="modulepreload" href="vendor/three.core.min.js" onload="__bootStep()">
 <link rel="modulepreload" href="vendor/three.module.min.js" onload="__bootStep()">
-<link rel="modulepreload" href="js/game.js?v=2" onload="__bootStep()">
+<link rel="modulepreload" href="js/game.js?v=3" onload="__bootStep()">
 <link rel="modulepreload" href="js/look.js?v=1" onload="__bootStep()">
 <link rel="preload" as="image" href="img/m_play.webp" onload="__bootStep()">
 </head>
@@ -67,6 +67,7 @@
   <div id="t_pat" class="bubble pat" hidden></div>
   <div id="t_hint" class="hint" hidden></div>
   <div id="eye" hidden aria-hidden="true"><svg viewBox="0 0 64 40"><path d="M3 20Q32-6 61 20Q32 46 3 20z" fill="#fff" stroke="#141414" stroke-width="4"/><circle cx="32" cy="20" r="9" fill="#141414"/></svg></div>
+  <div id="tmarks" aria-hidden="true"></div><div id="sus" hidden aria-hidden="true"></div><div id="chat" hidden aria-hidden="true"><svg viewBox="0 0 40 24"><path d="M4 6q6 6 0 12M14 3q9 9 0 18M24 6q6 6 0 12" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg></div>
   <div id="card2" hidden><b id="c2Time"></b><span id="c2Title"></span></div>
   <div class="talkbar">
     <div id="words"></div>
@@ -117,8 +118,8 @@ setTimeout(function(){if(window.__jsUp)return;var d=document.createElement('div'
 </script>
 <script src="tm.js?v=1" data-game="busker-shush"></script>
 <script src="sfx.js?v=1"></script>
-<script src="data.js?v=2"></script>
-<script type="module" src="js/game.js?v=2"></script>
+<script src="data.js?v=3"></script>
+<script type="module" src="js/game.js?v=3"></script>
 <script src="support.js?v=1" data-ja="のど飴" data-en="a throat lozenge"></script>
 </body>
 </html>

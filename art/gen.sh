@@ -15,3 +15,7 @@ fi
 if [[ $1 == 3 ]]; then
   run you_b $R/you_a.png & run date_b $R/folks_b.png & wait
 fi
+# 4: しゃべる通行人（なすりつけ用）と、その追い出され
+if [[ $1 == 4 ]]; then
+  run npc && run npc_b $R/npc.png
+fi

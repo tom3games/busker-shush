@@ -201,6 +201,56 @@ await t('見つかった原因ごとに説教と追い出しの大ゴマが変�
   const ok = Object.entries(got).every(([id, g]) => g.cause === id && BS.outBy[id].some(x => x[0].replace(/\n/g, '') === g.line) && BS.lecture[id].some(x => g.lecture.includes(x[0])))
   expect(ok, JSON.stringify(got)); return Object.fromEntries(Object.entries(got).map(([k, v]) => [k, v.line]))
 })
+// ---- もうひと工夫: いたずら・なすりつけ（本物のクリックで輪を押す）
+const toTrickScene = (p, sc) => p.evaluate(sc => { const d = bs.dbg, G = d.G; d.startPlay(); d.pause(true); d.startScene(sc); d.goto('quiet', { dur: 30 }); d.tick(2); G.gz.a = G.gz.to = -55; G.gz.dwell = 99; G.gz.pre = 0; G.gz.hw = 13; G.gz.hwTo = 13; G.pat = 40; d.render() }, sc)
+await t('いたずら: 見ていない隙に歌詞カードを本物のクリック → 変な歌詞のあと動揺して長い隙（視線が届かない）', async () => {
+  await toTrickScene(p, 1); const xy = await p.evaluate(() => bs.trickXY('lyric'))
+  await p.mouse.click(xy.x, xy.y); await run(p, 0.1); const a = await st(p)
+  let panic = null; for (let i = 0; i < 12 && !panic; i++) { await run(p, 0.5); const s = await st(p); if (s.sec === 'panic') panic = s }
+  expect(a.tricks === 1 && a.sus === 1 && panic && panic.gazeLen < panic.youD, JSON.stringify({ tricks: a.tricks, sus: a.sus, panic: panic && panic.sec })); return { sus: a.sus }
+})
+await t('いたずら: ケーブルを抜くと曲が止まり、声が1.4倍届く。2.6秒後に顔を上げて全員を見る', async () => {
+  await toTrickScene(p, 1); const xy = await p.evaluate(() => bs.trickXY('cable'))
+  await p.mouse.click(xy.x, xy.y); await run(p, 0.2); const a = await st(p); await run(p, 2.6); const b = await st(p)
+  expect(a.sec === 'unplug' && !a.inGaze && b.sec === 'unplug' && b.inGaze, JSON.stringify({ a: [a.sec, a.inGaze], b: [b.sec, b.inGaze] })); return true
+})
+await t('いたずら: アンプのつまみを下げるとサビでも声が届き、あとで犯人探しが始まる', async () => {
+  await toTrickScene(p, 1); const xy = await p.evaluate(() => bs.trickXY('amp'))
+  await p.mouse.click(xy.x, xy.y); await run(p, 0.1); const a = await st(p)
+  let found = false; for (let i = 0; i < 24 && !found; i++) { await run(p, 0.5); found = (await st(p)).sec === 'search' }
+  expect(a.ampLow && found, JSON.stringify({ low: a.ampLow, found })); return true
+})
+await t('いたずら: 見られている時に触ると一発退場（大ゴマは機材の一言、結果に「いたずらで」）', async () => {
+  await toTrickScene(p, 1); await p.evaluate(() => { const G = bs.dbg.G; G.gz.a = G.gz.to = bs.state.youA })
+  const xy = await p.evaluate(() => bs.trickXY('amp')); await p.mouse.click(xy.x, xy.y); await run(p, 0.6)
+  const line = await p.evaluate(() => document.getElementById('outLine').textContent.replace(/\n/g, ''))
+  await p.evaluate(() => bs.dbg.pause(false)); await p.waitForFunction(() => bs.state.mode === 'result', null, { timeout: 12000 })
+  const r = await p.evaluate(() => window.__lastResult)
+  expect(r.outCause === 'prank' && /機材/.test(line), JSON.stringify({ c: r.outCause, line })); return { line }
+})
+await t('いたずら: やりすぎ（疑い3つ）で次に触ると捕まる', async () => {
+  await toTrickScene(p, 1)
+  const r = await p.evaluate(() => { const out = []; for (const k of ['lyric', 'cable', 'amp']) { out.push(bs.trick(k)); bs.dbg.G.cur.dur = 99; bs.dbg.goto('quiet', { dur: 30 }); bs.dbg.tick(2) } bs.dbg.startScene(2); bs.dbg.goto('quiet', { dur: 30 }); bs.dbg.tick(2); const G = bs.dbg.G; G.gz.a = G.gz.to = -55; G.gz.dwell = 99; out.push(bs.trick('lyric')); return { out, over: bs.state.over, cause: G.outCause } })
+  expect(r.out.slice(0, 3).every(x => x === 'ok') && r.out[3] === 'caught' && r.cause === 'prank', JSON.stringify(r)); return r
+})
+await t('なすりつけ: しゃべっている通行人を本物のクリック → 視線がそっちへ、通行人がつまみ出される', async () => {
+  await toTrickScene(p, 2); await p.evaluate(() => { const G = bs.dbg.G; G.npc.t = 1; G.npc.talk = true; G.npc.ph = 0; G.gz.a = G.gz.to = bs.state.youA; bs.dbg.render() })
+  const xy = await p.evaluate(() => bs.trickXY('npc')); await p.mouse.click(xy.x, xy.y); await run(p, 0.5)
+  const s = await st(p)
+  expect(s.blames === 1 && !s.inGaze && !s.over, JSON.stringify({ b: s.blames, g: s.inGaze, o: s.over })); return true
+})
+await t('なすりつけ: 黙っている通行人を指すと二人まとめて退場（結果に「なすりつけで」）', async () => {
+  await toTrickScene(p, 2); await p.evaluate(() => { const G = bs.dbg.G; G.npc.t = 1; G.npc.talk = false; G.npc.ph = 0; bs.dbg.render() })
+  const xy = await p.evaluate(() => bs.trickXY('npc')); await p.mouse.click(xy.x, xy.y); await run(p, 0.6)
+  const line = await p.evaluate(() => document.getElementById('outLine').textContent.replace(/\n/g, ''))
+  const s = await st(p); await p.evaluate(() => bs.dbg.pause(false)); await p.waitForFunction(() => bs.state.mode === 'result', null, { timeout: 12000 })
+  const card = await p.evaluate(() => window.__lastResult.outCause)
+  expect(s.over === 'out' && card === 'blame' && /人のせい|二人まとめて/.test(line), JSON.stringify({ o: s.over, card, line })); return { line }
+})
+await t('いたずらを使う bot の方が得をし、使いすぎる bot は捕まる', async () => {
+  const r = await p.evaluate(() => { const avg = (b, f) => { let s = 0; for (let i = 1; i <= 8; i++) s += f(bs.sim(b, i * 53)); return s / 8 }; return { good: avg('good', r => r.points), trick: avg('trick', r => r.points), greedy: avg('greedy', r => r.points), greedyOut: avg('greedy', r => r.outCause === 'prank' ? 1 : 0) } })
+  expect(r.trick > r.good + 30 && r.greedy < r.trick && r.greedyOut >= 0.5, JSON.stringify(r)); return r
+})
 await t('用事を全部言い切ると次の用事へ（相手・時刻・屋台が変わる）', async () => {
   await p.evaluate(() => { bs.dbg.startPlay(); bs.dbg.pause(true) })
   await gazeAway(p)

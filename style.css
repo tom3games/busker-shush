@@ -149,3 +149,13 @@ html[lang=en] #outLine{font-size:clamp(26px,8vw,44px)}
   #card2{top:30svh}
   .hint{bottom:calc(env(safe-area-inset-bottom) + 214px)}
 }
+
+/* いたずらの的（見ていない隙に触れる機材）・疑いの？・しゃべっている通行人 */
+#tmarks{position:absolute;inset:0;pointer-events:none}
+#tmarks i{position:absolute;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;border:2.5px dashed rgba(255,255,255,.9);box-shadow:0 0 0 2px rgba(0,0,0,.35);animation:tm 1.4s ease-in-out infinite}
+#tmarks i.npc{width:58px;height:58px;margin:-29px 0 0 -29px;border-color:rgba(255,255,255,.45)}
+#tmarks i.npc.talk{border-color:#ffe14a;border-style:solid;animation-duration:.5s}
+@keyframes tm{50%{transform:scale(1.15)}}
+#sus{position:absolute;font-family:"Reggae One",sans-serif;font-size:26px;color:#ffe14a;-webkit-text-stroke:2px #141414;paint-order:stroke;transform:translate(-50%,-100%) rotate(8deg);z-index:3;letter-spacing:-.1em}
+#chat{position:absolute;width:40px;height:24px;transform:translate(0,-100%);z-index:3;filter:drop-shadow(0 1px 2px #000);animation:tm .3s linear infinite}
+#chat svg{width:100%;height:100%}
