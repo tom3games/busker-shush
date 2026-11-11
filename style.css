@@ -10,7 +10,7 @@ button{border:0;background:none}
 main{position:fixed;inset:0;height:100svh;overflow:hidden;z-index:3}
 
 /* タイトル: 段ボールに油性ペンの看板 */
-#vTitle{display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;padding:calc(env(safe-area-inset-top) + 3svh) 16px calc(env(safe-area-inset-bottom) + 4svh);pointer-events:none;background:linear-gradient(rgba(20,16,30,.25),rgba(20,16,30,0) 40%,rgba(20,16,30,0) 58%,rgba(20,16,30,.62))}
+#vTitle{display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;padding:calc(env(safe-area-inset-top) + 3svh) 16px calc(calc(env(safe-area-inset-bottom) + var(--inapp-bot,0px)) + 4svh);pointer-events:none;background:linear-gradient(rgba(20,16,30,.25),rgba(20,16,30,0) 40%,rgba(20,16,30,0) 58%,rgba(20,16,30,.62))}
 #vTitle button{pointer-events:auto}
 .board{position:relative;margin-left:2vw;padding:14px 20px 16px;width:min(80vw,320px);transform:rotate(-3deg);background:#c09160;
   background-image:repeating-linear-gradient(90deg,rgba(110,70,30,.16) 0 2px,transparent 2px 9px);box-shadow:0 10px 22px rgba(0,0,0,.45);clip-path:polygon(0 2%,6% 0,52% 1.5%,100% 0,99% 55%,100% 100%,40% 98.5%,1% 100%)}
@@ -71,14 +71,14 @@ html[lang=en] #outLine{font-size:clamp(26px,8vw,44px)}
 .bubble.pat.done{background:#e9f6e6;border-color:#2f7a3a;color:#1f5a2a}
 .bubble.pat.ng{background:#f3eeee;border-color:#555;color:#444}
 @keyframes pop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
-.hint{position:absolute;left:16px;right:16px;bottom:calc(env(safe-area-inset-bottom) + 238px);text-align:center;font-size:clamp(20px,5.8vw,25px);line-height:1.25;color:#fff;text-shadow:0 2px 0 #000,0 0 10px #000,0 0 3px #000;white-space:pre-line;z-index:4}
+.hint{position:absolute;left:16px;right:16px;bottom:calc(calc(env(safe-area-inset-bottom) + var(--inapp-bot,0px)) + 238px);text-align:center;font-size:clamp(20px,5.8vw,25px);line-height:1.25;color:#fff;text-shadow:0 2px 0 #000,0 0 10px #000,0 0 3px #000;white-space:pre-line;z-index:4}
 /* 場面の札: 駅の案内板 */
 #card2{position:absolute;left:50%;top:34svh;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 22px 12px;background:#173a6a;color:#fff;border-radius:3px;box-shadow:0 0 0 3px #d9e2ee inset,0 8px 20px rgba(0,0,0,.45);animation:card .35s ease-out;white-space:nowrap}
 #card2 b{font-size:clamp(26px,8vw,34px);letter-spacing:.06em}
 #card2 span{font-size:clamp(16px,4.8vw,20px)}
 @keyframes card{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
 /* 話すボタンと、言う言葉（カンペ） */
-.talkbar{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 12px);display:flex;flex-direction:column;align-items:center;gap:10px;pointer-events:none}
+.talkbar{position:absolute;left:0;right:0;bottom:calc(calc(env(safe-area-inset-bottom) + var(--inapp-bot,0px)) + 12px);display:flex;flex-direction:column;align-items:center;gap:10px;pointer-events:none}
 #words{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 6px;max-width:94vw;padding:6px 10px;background:#fbf8ef;border-radius:3px;box-shadow:0 4px 12px rgba(0,0,0,.4);transform:rotate(-1deg)}
 #words span{position:relative;font-size:clamp(16px,4.8vw,20px);color:#6f685c;padding:0 2px 3px}
 #words span i{position:absolute;left:0;right:0;bottom:0;height:4px;background:#c42a1e;transform-origin:0 50%;transform:scaleX(0)}
@@ -124,7 +124,7 @@ html[lang=en] #outLine{font-size:clamp(26px,8vw,44px)}
 #bMute.off #mWave{display:none}#bMute:not(.off) #mX{display:none}
 
 /* 結果: 段ボールに貼ったセットリスト */
-#vResult{background:#2a2433;display:flex;flex-direction:column;align-items:center;padding:calc(env(safe-area-inset-top) + 10px) 12px calc(env(safe-area-inset-bottom) + 6px);gap:8px}
+#vResult{background:#2a2433;display:flex;flex-direction:column;align-items:center;padding:calc(env(safe-area-inset-top) + 10px) 12px calc(calc(env(safe-area-inset-bottom) + var(--inapp-bot,0px)) + 6px);gap:8px}
 #card{flex:none;display:block;box-shadow:0 8px 22px rgba(0,0,0,.5)}
 .cardbox{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center}
 .rbtns{display:flex;gap:12px;flex:none}
@@ -147,7 +147,7 @@ html[lang=en] #outLine{font-size:clamp(26px,8vw,44px)}
   #howRules li{font-size:12px}
   #talk{width:96px;height:96px}#talk svg{width:34px;height:34px}
   #card2{top:30svh}
-  .hint{bottom:calc(env(safe-area-inset-bottom) + 214px)}
+  .hint{bottom:calc(calc(env(safe-area-inset-bottom) + var(--inapp-bot,0px)) + 214px)}
 }
 
 /* いたずらの的（見ていない隙に触れる機材）・疑いの？・しゃべっている通行人 */
