@@ -337,6 +337,43 @@ await t('WebKit: 追い出しから結果まで通る', async () => {
   expect(r.mode === 'result', JSON.stringify(r))
 })
 await t('WebKit: エラーが出ない', async () => { const e = wq.errs.concat(wm.errs); expect(e.length === 0, e.join('|')) })
+// ---- ページを離れた時の音（2026-11-11 横丁へ移っても BGM が鳴り続けた不具合の再発防止）
+await t('WebKit: 裏に回ると BGM と環境音が止まり suspend。戻っても触るまで鳴らない（bfcache の pageshow でも）', async () => {
+  const r = await wq.evaluate(async () => {
+    if (!Snd.ctx) Snd.init()
+    const url = Object.values(Snd.files).flat()[0]; Snd.loop('vtest', url, 0.2)
+    for (let i = 0; i < 30 && !Snd.playing().includes('vtest'); i++) await new Promise(r => setTimeout(r, 100))
+    const c = Snd.ctx; let sus = 0; const os = c.suspend.bind(c); c.suspend = () => { sus++; return os() }
+    const before = Snd.playing().length, wake0 = Snd.life.wake
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' }); document.dispatchEvent(new Event('visibilitychange'))
+    const hid = { away: Snd.away, playing: Snd.playing().length, sus, gain: Snd.master.gain.value }
+    const name = Object.keys(Snd.files)[0], src = Snd.play(name); Snd.loop('vtest2', url, 0.2);    // 裏にいる間の音は鳴らさない
+    await new Promise(r => setTimeout(r, 400)); const quiet = Snd.playing().length
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' }); document.dispatchEvent(new Event('visibilitychange'))
+    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }))
+    await new Promise(r => setTimeout(r, 400)); const back = { away: Snd.away, playing: Snd.playing().length, gain: Snd.master.gain.value }
+    Snd.loop('vtest2', null)
+    return { before, wake0, hid, src: src === null, quiet, back }
+  })
+  // ボタンでない所を1回タップ（触ったら鳴らし直す）
+  const pt = await wq.evaluate(() => { for (let y = 0.5; y < 0.98; y += 0.06) for (let x = 0.08; x < 0.95; x += 0.12) { const X = innerWidth * x, Y = innerHeight * y, e = document.elementFromPoint(X, Y); if (e && !e.closest('button,a,input,select,textarea,label,[onclick],[role=button],[tabindex]')) return { x: X, y: Y } } return null })
+  if (pt) await wq.touchscreen.tap(pt.x, pt.y); else await wq.keyboard.press('Shift')
+  await wq.waitForTimeout(700)
+  const after = await wq.evaluate(() => ({ away: Snd.away, playing: Snd.playing().length, wake: Snd.life.wake, mute: window.__muteOk() }))
+  await wq.evaluate(() => Snd.loop('vtest', null))
+  expect(r.before >= 1 && r.hid.away && r.hid.playing === 0 && r.hid.sus === 1 && r.hid.gain === 0 && r.src && r.quiet === 0 && r.back.away && r.back.playing === 0 && r.back.gain === 0 && !after.away && after.playing >= r.before && after.wake === r.wake0 + 1 && after.mute, JSON.stringify({ r, after, pt })); return { before: r.before, after: after.playing }
+})
+await t('WebKit: 別のページへ移る（pagehide）と止まり、戻るで戻っても鳴っていない・エラーなし', async () => {
+  await wq.evaluate(() => addEventListener('pagehide', () => { try { sessionStorage.setItem('vHide', JSON.stringify({ away: Snd.away, playing: Snd.playing().length, hide: Snd.life.hide })) } catch (e) {} }))
+  await wq.evaluate(() => { if (!Snd.ctx) Snd.init(); Snd.loop('vtest', Object.values(Snd.files).flat()[0], 0.2) }); await wq.waitForTimeout(500)
+  const pre = await wq.evaluate(() => Snd.playing().length)
+  await wq.goto(URL0 + 'privacy.html'); await wq.waitForTimeout(300)
+  const hid = await wq.evaluate(() => sessionStorage.getItem('vHide'))
+  await wq.goBack(); await wq.waitForFunction(() => window.__bsReady, null, { timeout: 15000 }); await wq.waitForTimeout(800)
+  const back = await wq.evaluate(() => ({ playing: typeof Snd === 'undefined' ? 0 : Snd.playing().length, mute: window.__muteOk() }))
+  const h = JSON.parse(hid || '{}')
+  expect(pre >= 1 && h.away && h.playing === 0 && back.playing === 0 && back.mute && wq.errs.length === 0, JSON.stringify({ pre, h, back, e: wq.errs })); return { pre, h, back }
+})
 await wb.close()
 server.kill()
 console.log(results.join('\n'))
